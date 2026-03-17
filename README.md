@@ -18,8 +18,6 @@
 
 ---
 
-## 📱 Screenshots
-
 <!-- Add your screenshots here after building -->
 ## 🖼️ User Interface Showcase
 
@@ -39,7 +37,7 @@
    </tr>
    <tr>
     <td align="center" width="40%">
-      <b>  Law Chat</b><br />
+      <b> ⚖️ Law Chat</b><br />
       <img src="https://github.com/user-attachments/assets/8c2f9975-6b0b-4454-ba3d-35531a137a72" width="100%" />
     </td>
     <td align="center" width="40%">
