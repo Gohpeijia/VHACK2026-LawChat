@@ -261,15 +261,6 @@ VHACK2026-LawChat/
 
 ---
 
-## 👥 Team
-
-| Name | Role |
-|---|---|
-| Person 1 | Finish the entire app |
-| Person 2 | Content + Pitch — law data, demo, slides, video |
-
----
-
 ## 📄 License
 
 This project was built for **V HACK 2026**.
