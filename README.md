@@ -2,7 +2,7 @@
 
 > **Snap a letter. Ask a law. Know your rights.**
 >
-> An AI-powered multilingual civic assistant that helps every Malaysian understand government documents and their legal rights — in BM, English, Mandarin, and Tamil.
+> An AI-powered multilingual civic assistant that helps every Malaysian understand government documents and their legal rights — in multiple languages.
 
 ---
 
@@ -45,8 +45,7 @@
       <img src="https://github.com/user-attachments/assets/b667a61b-0cf0-45c5-85fb-d88f6a0feaaa" width=100%" />
     </td>
   </tr>
-</table>|
----
+</table>
 
 ## 🎯 Problem Statement
 
