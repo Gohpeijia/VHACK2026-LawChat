@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { History as HistoryIcon, Clock, ChevronRight, FileText, MessageSquare, Loader2 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
+import { useLocalization } from '../services/localization';
 
 interface HistoryItem {
   id: string;
@@ -13,6 +14,7 @@ interface HistoryItem {
 }
 
 export const History: React.FC<{ theme: string }> = ({ theme }) => {
+  const { t } = useLocalization();
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,8 +48,8 @@ export const History: React.FC<{ theme: string }> = ({ theme }) => {
 
   if (loading) {
     return (
-      <div className="h-[400px] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-brand-olive animate-spin" />
+      <div className="h-100 flex items-center justify-center">
+        <Loader2 className={`w-8 h-8 animate-spin ${theme === 'dark' ? 'text-silver-glowing' : 'text-gold-brushed'}`} />
       </div>
     );
   }
@@ -55,8 +57,8 @@ export const History: React.FC<{ theme: string }> = ({ theme }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20">
       <div className="space-y-1">
-        <h2 className="text-3xl font-bold text-brand-olive dark:text-brand-clay">History</h2>
-        <p className="text-brand-clay font-medium opacity-80">Your simplified documents and LawChat Q&As saved to your account.</p>
+        <h2 className={`text-3xl font-bold serif ${theme === 'dark' ? 'text-off-white' : 'text-cocoa-deep'}`}>{t('history.title')}</h2>
+        <p className={`font-medium opacity-60 ${theme === 'dark' ? 'text-off-white' : 'text-cocoa-deep'}`}>{t('history.subtitle')}</p>
       </div>
 
       <div className="space-y-4">
@@ -64,27 +66,31 @@ export const History: React.FC<{ theme: string }> = ({ theme }) => {
           historyItems.map((item) => (
             <button 
               key={item.id}
-              className="card w-full p-6 flex items-center justify-between hover:bg-brand-cream dark:hover:bg-white/5 transition-all group"
+              className={`card w-full p-6 flex items-center justify-between transition-all group ${theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gold-brushed/5'}`}
             >
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${item.type === 'doc' ? 'bg-brand-olive/10 text-brand-olive' : 'bg-brand-clay/10 text-brand-clay'}`}>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                  theme === 'dark' 
+                    ? 'bg-silver-glowing/10 text-silver-glowing' 
+                    : 'bg-gold-brushed/10 text-gold-brushed'
+                }`}>
                   {item.type === 'doc' ? <FileText size={24} /> : <MessageSquare size={24} />}
                 </div>
                 <div className="text-left">
                   <h4 className="font-bold text-lg line-clamp-1">{item.query}</h4>
-                  <div className="flex items-center gap-2 text-xs text-brand-clay font-medium opacity-60">
+                  <div className={`flex items-center gap-2 text-xs font-medium opacity-60 ${theme === 'dark' ? 'text-off-white' : 'text-cocoa-deep'}`}>
                     <Clock size={12} />
                     {item.timestamp?.toDate().toLocaleString()}
                   </div>
                 </div>
               </div>
-              <ChevronRight className="text-brand-clay group-hover:translate-x-1 transition-transform" />
+              <ChevronRight className={`transition-transform group-hover:translate-x-1 ${theme === 'dark' ? 'text-off-white/40' : 'text-cocoa-deep/40'}`} />
             </button>
           ))
         ) : (
-          <div className="card p-12 text-center space-y-4 opacity-50">
-            <HistoryIcon size={48} className="mx-auto text-brand-olive" />
-            <p className="font-medium">No history found yet.<br/>Start by asking LawChat a question or scanning a document.</p>
+          <div className={`card p-12 text-center space-y-4 opacity-50 ${theme === 'dark' ? 'bg-slate-rich' : 'bg-cream-soft'}`}>
+            <HistoryIcon size={48} className={`mx-auto ${theme === 'dark' ? 'text-silver-glowing' : 'text-gold-brushed'}`} />
+            <p className="font-medium">{t('history.empty')}</p>
           </div>
         )}
       </div>

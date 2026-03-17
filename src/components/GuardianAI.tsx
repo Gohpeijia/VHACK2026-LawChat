@@ -100,9 +100,9 @@ export const GuardianAI: React.FC = () => {
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tax Health Check</p>
-              <h3 className="text-3xl font-black mt-1 text-brand-teal tracking-tighter">Excellent</h3>
+              <h3 className="text-3xl font-black mt-1 text-silver-glowing tracking-tighter">Excellent</h3>
             </div>
-            <div className="p-2 bg-brand-teal/10 text-brand-teal rounded-xl">
+            <div className="p-2 bg-silver-glowing/10 text-silver-glowing rounded-xl">
               <HeartPulse className="w-5 h-5" />
             </div>
           </div>

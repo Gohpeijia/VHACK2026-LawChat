@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../context/ThemeContext';
-import { ProcessInvoice } from './ProcessInvoice';
 import { GuardianAI } from './GuardianAI';
 
 type Module = 'dashboard' | 'process' | 'guardian' | 'history' | 'settings';
@@ -62,7 +61,7 @@ export const Dashboard: React.FC = () => {
         lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-brand-indigo to-brand-purple rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-indigo/20">
+          <div className="w-10 h-10 bg-linear-to-br from-brand-indigo to-brand-purple rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-indigo/20">
             <span className="font-black text-xl italic">B</span>
           </div>
           <span className="font-black text-2xl tracking-tighter dark:text-white">Bilboleh</span>
@@ -234,7 +233,6 @@ export const Dashboard: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {activeModule === 'process' && <ProcessInvoice />}
               {activeModule === 'guardian' && <GuardianAI />}
               {activeModule === 'dashboard' && (
                 <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
