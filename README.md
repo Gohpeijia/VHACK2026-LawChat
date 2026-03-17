@@ -275,7 +275,7 @@ VHACK2026-LawChat/
 
 ## 📄 License
 
-This project was built for **V HACK 2026** at Universiti Sains Malaysia.
+This project was built for **V HACK 2026**.
 
 ---
 
