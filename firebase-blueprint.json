@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "User role" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "history": {
+      "title": "History",
+      "description": "User interaction history",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID" },
+        "type": { "type": "string", "enum": ["doc", "law"], "description": "Type of interaction" },
+        "query": { "type": "string", "description": "User query" },
+        "response": { "type": "string", "description": "AI response" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Interaction timestamp" }
+      },
+      "required": ["userId", "type", "query", "response", "timestamp"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "users",
+      "description": "User profiles"
+    },
+    "history/{historyId}": {
+      "schema": "history",
+      "description": "Interaction history"
+    }
+  }
+}

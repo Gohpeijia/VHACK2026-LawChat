@@ -1,0 +1,5 @@
+{
+  "name": "LawChat",
+  "description": "An NLP-powered assistant that simplifies and summarizes complex official information into multiple local languages and dialects for inclusive public services.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
+}
