@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
-import { FileText, Scale, History as HistoryIcon, ShieldCheck, Sun, Moon, Globe, LogIn, User, LogOut } from 'lucide-react';
+import { FileText, Scale, History as HistoryIcon, ShieldCheck, Sun, Moon, Globe, LogIn, User, LogOut, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DocumentExplainer } from './components/DocumentExplainer';
 import { LawExplainer } from './components/LawExplainer';
@@ -68,6 +68,8 @@ function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [selectedHistory, setSelectedHistory] = useState<any>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -123,6 +125,10 @@ function App() {
             setTheme={setTheme}
             language={language}
             setLanguage={setLanguage}
+            isReadingMode={isReadingMode}
+            setIsReadingMode={setIsReadingMode}
+            selectedHistory={selectedHistory}
+            setSelectedHistory={setSelectedHistory}
             user={user}
             showAuth={showAuth}
             setShowAuth={setShowAuth}
@@ -144,7 +150,7 @@ function LoadingText({ theme }: { theme: string }) {
 }
 
 function AppContent({ 
-  activeTab, setActiveTab, theme, setTheme, language, setLanguage, user, showAuth, setShowAuth, handleLogout 
+  activeTab, setActiveTab, theme, setTheme, language, setLanguage, isReadingMode, setIsReadingMode, selectedHistory, setSelectedHistory, user, showAuth, setShowAuth, handleLogout 
 }: any) {
   const { t } = useLocalization();
 
@@ -168,17 +174,17 @@ function AppContent({
       {/* Main Layout */}
       <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside className={`hidden md:flex w-64 flex-col sticky top-0 h-screen transition-all duration-500 ${theme === 'dark' ? 'sidebar-dark' : 'sidebar-light'}`}>
-          <div className={`p-4 border-b ${theme === 'dark' ? 'border-white/5' : 'border-cocoa-deep/5'}`}>
-            <div className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${theme === 'dark' ? 'bg-silver-glowing glow-silver' : 'bg-gold-brushed glow-gold'}`}>
-                <Scale size={18} />
+        <aside className={`hidden md:flex w-72 flex-col sticky top-0 h-screen transition-all duration-500 ${theme === 'dark' ? 'sidebar-dark' : 'sidebar-light'}`}>
+          <div className={`p-6 border-b ${theme === 'dark' ? 'border-white/5' : 'border-cocoa-deep/5'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${theme === 'dark' ? 'bg-silver-glowing glow-silver' : 'bg-gold-brushed glow-gold'}`}>
+                <Scale size={22} />
               </div>
-              <h1 className={`text-lg font-bold serif ${theme === 'dark' ? 'text-off-white' : 'text-cocoa-deep'}`}>{t('law.title')}</h1>
+              <h1 className={`text-xl font-bold serif ${theme === 'dark' ? 'text-off-white' : 'text-cocoa-deep'}`}>{t('law.title')}</h1>
             </div>
           </div>
           
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-6 space-y-3">
             <SidebarButton 
               active={activeTab === 'docs'} 
               onClick={() => setActiveTab('docs')}
@@ -202,8 +208,29 @@ function AppContent({
             />
           </nav>
 
-          <div className={`p-4 space-y-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-cocoa-deep/5'}`}>
-            {/* Language Selector */}
+            <div className={`p-4 space-y-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-cocoa-deep/5'}`}>
+              {/* Reading Mode Toggle */}
+              <button 
+                onClick={() => setIsReadingMode(!isReadingMode)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-bold text-xs ${
+                  isReadingMode 
+                    ? 'bg-gold-brushed text-white shadow-lg glow-gold scale-105' 
+                    : (theme === 'dark' ? 'bg-white/5 text-off-white/60 hover:bg-white/10 hover:text-off-white' : 'bg-cocoa-deep/5 text-cocoa-deep/60 hover:bg-cocoa-deep/10 hover:text-cocoa-deep')
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <BookOpen size={16} />
+                  <div className="text-left">
+                    <div>{t('nav.readingMode')}</div>
+                    <div className={`text-[8px] opacity-60 font-medium ${isReadingMode ? 'text-white' : ''}`}>{t('nav.readingMode.desc')}</div>
+                  </div>
+                </div>
+                <div className={`w-8 h-4 rounded-full relative transition-all ${isReadingMode ? 'bg-white/30' : 'bg-black/10'}`}>
+                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${isReadingMode ? 'left-4.5' : 'left-0.5'}`} />
+                </div>
+              </button>
+
+              {/* Language Selector */}
             <div className="space-y-2">
               <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest px-2 ${theme === 'dark' ? 'text-off-white/50' : 'text-cocoa-deep/50'}`}>
                 <Globe size={12} />
@@ -333,9 +360,31 @@ function AppContent({
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {activeTab === 'docs' && <DocumentExplainer language={language} theme={theme} />}
-                  {activeTab === 'law' && <LawExplainer language={language} theme={theme} />}
-                  {activeTab === 'history' && <History theme={theme} />}
+                  {activeTab === 'docs' && (
+                    <DocumentExplainer 
+                      language={language} 
+                      theme={theme} 
+                      isReadingMode={isReadingMode} 
+                      initialHistory={selectedHistory?.type === 'doc' ? selectedHistory : null}
+                    />
+                  )}
+                  {activeTab === 'law' && (
+                    <LawExplainer 
+                      language={language} 
+                      theme={theme} 
+                      isReadingMode={isReadingMode} 
+                      initialHistory={selectedHistory?.type === 'law' ? selectedHistory : null}
+                    />
+                  )}
+                  {activeTab === 'history' && (
+                    <History 
+                      theme={theme} 
+                      onSelectItem={(item: any) => {
+                        setSelectedHistory(item);
+                        setActiveTab(item.type === 'doc' ? 'docs' : 'law');
+                      }}
+                    />
+                  )}
                 </motion.div>
               </AnimatePresence>
             )}
@@ -356,7 +405,7 @@ function SidebarButton({ active, onClick, icon, label, theme }: { active: boolea
   return (
     <button 
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+      className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold text-base transition-all ${
         active 
           ? (theme === 'dark' 
               ? 'bg-slate-rich text-silver-glowing shadow-lg border border-white/5 glow-silver' 

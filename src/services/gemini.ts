@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const getApiKey = () => {
   const key = process.env.GEMINI_API_KEY;
@@ -72,9 +72,17 @@ export const chatWithDocument = async (
   base64Image: string, 
   mimeType: string = 'image/jpeg',
   history: {role: 'user' | 'model', parts: {text: string}[]}[],
-  language: string = 'en'
+  language: string = 'en',
+  readingMode: boolean = false
 ) => {
   const langName = getLanguageName(language);
+  const oralInstructions = readingMode ? `
+    - ORAL-FRIENDLY: Use clear, conversational sentences.
+    - STRUCTURE: Use phrases like "First of all," "Regarding...", and "In summary."
+    - TONE: Calm, reassuring, and professional.
+    - NO MARKDOWN OVERLOAD: Use simple lists.
+  ` : '';
+
   const model = ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: [
@@ -95,6 +103,7 @@ export const chatWithDocument = async (
             - Maintain a professional, objective, yet empathetic tone.
             - Answer ONLY based on the document content. If information is not in the document, state so honestly.
             - Use the target language: ${langName}.
+            ${oralInstructions}
             - Always include this disclaimer at the end of your response: "This analysis is for informational purposes only and does not constitute legal advice. Please consult a professional lawyer if needed." (Translated into ${langName})`,
           },
         ],
@@ -108,8 +117,17 @@ export const chatWithDocument = async (
   return response.text;
 };
 
-export const askLaw = async (query: string, language: string = 'en') => {
+export const askLaw = async (query: string, language: string = 'en', readingMode: boolean = false) => {
   const langName = getLanguageName(language);
+  
+  const oralInstructions = readingMode ? `
+    - ORAL-FRIENDLY: Use clear, conversational sentences. Avoid complex nested clauses.
+    - STRUCTURE: Use phrases like "First of all," "Regarding your point about...", and "In summary."
+    - TONE: Calm, reassuring, and professional.
+    - EMPHASIS: When mentioning a specific Section or Act, briefly highlight its importance.
+    - NO MARKDOWN OVERLOAD: Use simple bullet points or numbered lists. No complex tables or heavy headers.
+  ` : '';
+
   const model = ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: query,
@@ -119,10 +137,10 @@ export const askLaw = async (query: string, language: string = 'en') => {
       - Accuracy: Do not hallucinate. If unsure, say "I cannot find official information on this."
       - Dialect-Aware: You must handle queries in local dialects (e.g., Kelantan, Sarawak, Tagalog dialects, Indonesian regional dialects).
       - Persona: You are helpful, inclusive, and simplify complex laws for the common person.
-      - Language Persistence: You MUST respond strictly in the requested language/dialect: ${langName}. Even if the user asks in English, if the setting is ${langName}, you respond in ${langName}.
+      - Language Persistence: You MUST respond strictly in the requested language/dialect: ${langName}.
       - Simplification: Use clear, accessible language (plain language).
       - Summarization: Always provide a summary of 3-5 actionable bullet points at the end of your response.
-      - Cross-Lingual: Even if the query is in a dialect, retrieve information from national-language official sources but translate the explanation back to the user's dialect.`,
+      ${oralInstructions}`,
     },
   });
 

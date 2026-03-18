@@ -87,6 +87,22 @@ const REGISTRY: Record<string, Record<LanguageCode, string>> = {
     kel: 'Mod Gelap',
     swk: 'Mod Gelap'
   },
+  'nav.readingMode': {
+    en: 'Reading Mode',
+    ms: 'Mod Membaca',
+    id: 'Mode Membaca',
+    tl: 'Reading Mode',
+    kel: 'Mod Membaco',
+    swk: 'Mod Membaca'
+  },
+  'nav.readingMode.desc': {
+    en: 'Optimized for audio and focus',
+    ms: 'Dioptimumkan untuk audio dan fokus',
+    id: 'Dioptimalkan untuk audio dan fokus',
+    tl: 'Optimized para sa audio at focus',
+    kel: 'Mudoh nak denga ko baco',
+    swk: 'Dioptimumkan untuk audio ngan fokus'
+  },
   'nav.login': {
     en: 'Login / Sign Up',
     ms: 'Log Masuk / Daftar',
@@ -176,6 +192,14 @@ const REGISTRY: Record<string, Record<LanguageCode, string>> = {
     tl: 'Nag-iisip ang LawChat...',
     kel: 'LawChat tengah miki...',
     swk: 'LawChat tengah mikir...'
+  },
+  'law.mic_note': {
+    en: 'Listening... (Will stop automatically)',
+    ms: 'Mendengar... (Akan berhenti secara automatik)',
+    id: 'Mendengarkan... (Akan berhenti secara otomatis)',
+    tl: 'Nakikinig... (Awtomatikong hihinto)',
+    kel: 'Tengah denga... (Ake bereti sendiri)',
+    swk: 'Tengah nengar... (Akan berenti secara automatik)'
   },
   'law.welcome.title': {
     en: "Apa khabar? I'm LawChat.",

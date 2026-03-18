@@ -13,7 +13,7 @@ interface HistoryItem {
   language?: string;
 }
 
-export const History: React.FC<{ theme: string }> = ({ theme }) => {
+export const History: React.FC<{ theme: string, onSelectItem: (item: HistoryItem) => void }> = ({ theme, onSelectItem }) => {
   const { t } = useLocalization();
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +55,7 @@ export const History: React.FC<{ theme: string }> = ({ theme }) => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-20">
+    <div className="max-w-6xl mx-auto space-y-8 pb-20">
       <div className="space-y-1">
         <h2 className={`text-3xl font-bold serif ${theme === 'dark' ? 'text-off-white' : 'text-cocoa-deep'}`}>{t('history.title')}</h2>
         <p className={`font-medium opacity-60 ${theme === 'dark' ? 'text-off-white' : 'text-cocoa-deep'}`}>{t('history.subtitle')}</p>
@@ -66,6 +66,7 @@ export const History: React.FC<{ theme: string }> = ({ theme }) => {
           historyItems.map((item) => (
             <button 
               key={item.id}
+              onClick={() => onSelectItem(item)}
               className={`card w-full p-6 flex items-center justify-between transition-all group ${theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gold-brushed/5'}`}
             >
               <div className="flex items-center gap-4">

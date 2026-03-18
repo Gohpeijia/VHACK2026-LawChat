@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { MessageSquare, Scale, FileSearch, ShieldAlert, Send, Mic, Camera, ChevronRight, Share2 } from 'lucide-react';
+import { MessageSquare, Scale, FileSearch, ShieldAlert, Send, Mic, Camera, ChevronRight, Share2, BookOpen, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import { askLaw, analyzeContract } from '../services/gemini';
@@ -7,7 +7,12 @@ import { auth, db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useLocalization } from '../services/localization';
 
-export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ language, theme }) => {
+export const LawExplainer: React.FC<{ 
+  language: string, 
+  theme: string, 
+  isReadingMode: boolean,
+  initialHistory?: any
+}> = ({ language, theme, isReadingMode: globalReadingMode, initialHistory }) => {
   const { t } = useLocalization();
 
   const CATEGORIES = React.useMemo(() => [
@@ -25,7 +30,82 @@ export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ la
   const [loading, setLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<{role: 'user' | 'ai', text: string}[]>([]);
   const [contractResult, setContractResult] = useState<any>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isNarrating, setIsNarrating] = useState(false);
+  const [readingText, setReadingText] = useState('');
+  const [highlightIndex, setHighlightIndex] = useState(-1);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  React.useEffect(() => {
+    if (initialHistory) {
+      setChatHistory([
+        { role: 'user', text: initialHistory.query },
+        { role: 'ai', text: initialHistory.response }
+      ]);
+      setMode('chat');
+    }
+  }, [initialHistory]);
+
+  const startReadingMode = (text: string) => {
+    setReadingText(text);
+    setIsNarrating(true);
+    setHighlightIndex(-1);
+    
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = language === 'en' ? 'en-US' : (language === 'ms' ? 'ms-MY' : 'id-ID');
+    utterance.rate = 0.9; // Slightly slower for clarity
+    
+    utterance.onboundary = (event) => {
+      if (event.name === 'word') {
+        // Find the word index
+        const textBefore = text.substring(0, event.charIndex);
+        const wordsBefore = textBefore.trim().split(/\s+/);
+        setHighlightIndex(textBefore.trim() === '' ? 0 : wordsBefore.length);
+      }
+    };
+    
+    utterance.onend = () => {
+      setHighlightIndex(-1);
+    };
+    
+    speechRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopReadingMode = () => {
+    window.speechSynthesis.cancel();
+    setIsNarrating(false);
+    setReadingText('');
+    setHighlightIndex(-1);
+  };
+
+  const startSpeechRecognition = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in your browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = language === 'en' ? 'en-US' : (language === 'ms' ? 'ms-MY' : 'id-ID');
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = () => setIsRecording(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setQuery(transcript);
+    };
+
+    recognition.start();
+  };
 
   const handleChat = async (e?: React.FormEvent, customQuery?: string) => {
     e?.preventDefault();
@@ -38,9 +118,13 @@ export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ la
     setMode('chat');
 
     try {
-      const response = await askLaw(messageToSend, language);
+      const response = await askLaw(messageToSend, language, globalReadingMode);
       setChatHistory(prev => [...prev, { role: 'ai', text: response || '' }]);
       
+      if (globalReadingMode && response) {
+        startReadingMode(response);
+      }
+
       // Save to Firestore if logged in
       if (auth.currentUser) {
         await addDoc(collection(db, 'history'), {
@@ -94,7 +178,54 @@ export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ la
   };
 
   return (
-    <div className={`max-w-6xl mx-auto space-y-6 pb-10 p-4 md:p-6 rounded-4xl transition-all duration-500 ${theme === 'dark' ? 'bg-slate-rich border border-white/5' : 'bg-cream-soft border border-gold-brushed/10 shadow-xl'}`}>
+    <>
+      {/* Reading Mode Overlay */}
+      <AnimatePresence>
+        {isNarrating && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-100 bg-[#F5F2EA] flex flex-col items-center justify-center p-8 md:p-20"
+          >
+            <button 
+              onClick={stopReadingMode}
+              className="absolute top-8 right-8 p-4 text-cocoa-deep/40 hover:text-cocoa-deep transition-colors"
+            >
+              <XCircle size={48} />
+            </button>
+            
+            <div className="max-w-4xl w-full space-y-12 overflow-y-auto max-h-[80vh] pr-4 custom-scrollbar">
+              <div className="flex items-center gap-4 text-cocoa-deep/60">
+                <BookOpen size={32} />
+                <span className="text-sm font-bold uppercase tracking-widest">{t('nav.readingMode')}</span>
+              </div>
+              
+              <div className="text-4xl md:text-5xl font-serif leading-relaxed text-cocoa-deep">
+                {readingText.split(/\s+/).map((word, i) => (
+                  <span 
+                    key={i} 
+                    className={`inline-block mr-3 transition-colors duration-200 rounded px-1 ${
+                      i === highlightIndex ? 'bg-gold-brushed text-white shadow-lg scale-110' : ''
+                    }`}
+                  >
+                    {word}
+                  </span>
+                ))}
+              </div>
+            </div>
+            
+            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-8">
+              <div className="flex items-center gap-2 text-cocoa-deep/40">
+                <div className="w-2 h-2 rounded-full bg-gold-brushed animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-widest">Narrating...</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className={`max-w-7xl mx-auto space-y-8 pb-10 p-6 md:p-8 rounded-[40px] transition-all duration-500 ${theme === 'dark' ? 'bg-slate-rich border border-white/5' : 'bg-cream-soft border border-gold-brushed/10 shadow-xl'}`}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h2 className={`text-2xl font-bold serif ${theme === 'dark' ? 'text-off-white' : 'text-cocoa-deep'}`}>{t('law.title')}</h2>
@@ -114,15 +245,15 @@ export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ la
                 <button 
                   key={cat.id}
                   onClick={() => handleCategoryClick(cat)}
-                  className={`flex items-center gap-2 p-3 rounded-xl border transition-all text-left group ${
+                  className={`flex items-center gap-3 p-4 rounded-2xl border transition-all text-left group ${
                     activeCategory === cat.id 
                       ? (theme === 'dark' ? 'bg-silver-glowing text-charcoal-deep border-silver-glowing glow-silver' : 'bg-gold-brushed text-white border-gold-brushed glow-gold') 
                       : (theme === 'dark' ? 'bg-charcoal-deep border-white/5 text-off-white hover:border-silver-glowing/30 hover:bg-white/5' : 'bg-cream-soft border-gold-brushed/10 text-cocoa-deep hover:border-gold-brushed/30 hover:bg-beige-pale')
                   }`}
                 >
-                  <span className={`text-lg transition-transform ${activeCategory === cat.id ? '' : 'group-hover:scale-110'}`}>{cat.icon}</span>
+                  <span className={`text-xl transition-transform ${activeCategory === cat.id ? '' : 'group-hover:scale-110'}`}>{cat.icon}</span>
                   <div>
-                    <p className="text-xs font-bold">{cat.name}</p>
+                    <p className="text-sm font-bold">{cat.name}</p>
                   </div>
                 </button>
               ))}
@@ -183,8 +314,8 @@ export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ la
                       </div>
                     )}
                     {chatHistory.map((msg, i) => (
-                      <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] p-5 rounded-3xl shadow-sm ${
+                      <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        <div className={`max-w-[85%] p-5 rounded-3xl shadow-sm relative group ${
                           msg.role === 'user' 
                             ? (theme === 'dark' ? 'bg-silver-glowing text-charcoal-deep rounded-tr-none glow-silver' : 'bg-gold-brushed text-white rounded-tr-none glow-gold') 
                             : (theme === 'dark' ? 'bg-slate-rich text-off-white rounded-tl-none border border-white/5' : 'bg-beige-pale text-cocoa-deep rounded-tl-none border border-gold-brushed/5')
@@ -192,6 +323,19 @@ export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ la
                           <div className={`prose prose-sm max-w-none ${theme === 'dark' ? 'prose-invert' : 'prose-brand'}`}>
                             <Markdown>{msg.text}</Markdown>
                           </div>
+                          {msg.role === 'ai' && (
+                            <div className="absolute -right-12 top-0 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                onClick={() => startReadingMode(msg.text)}
+                                className={`p-2 rounded-full transition-all ${
+                                  theme === 'dark' ? 'bg-white/5 text-silver-glowing hover:bg-white/10' : 'bg-gold-brushed/5 text-gold-brushed hover:bg-gold-brushed/10'
+                                }`}
+                                title="Reading Mode"
+                              >
+                                <BookOpen size={16} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -205,9 +349,29 @@ export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ la
                     )}
                   </div>
                   <form onSubmit={handleChat} className={`p-6 border-t flex gap-3 ${theme === 'dark' ? 'bg-slate-rich border-white/5' : 'bg-beige-pale border-gold-brushed/5'}`}>
-                    <button type="button" className={`p-3 transition-colors ${theme === 'dark' ? 'text-off-white/40 hover:text-silver-glowing' : 'text-cocoa-deep/40 hover:text-gold-brushed'}`}>
-                      <Mic size={24} />
-                    </button>
+                    <div className="relative">
+                      <button 
+                        type="button" 
+                        onClick={startSpeechRecognition}
+                        className={`p-3 transition-all rounded-full ${
+                          isRecording 
+                            ? 'bg-red-500 text-white animate-pulse' 
+                            : (theme === 'dark' ? 'text-off-white/40 hover:text-silver-glowing hover:bg-white/5' : 'text-cocoa-deep/40 hover:text-gold-brushed hover:bg-gold-brushed/5')
+                        }`}
+                      >
+                        <Mic size={24} />
+                      </button>
+                      {isRecording && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="absolute bottom-full mb-3 left-0 whitespace-nowrap bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg z-50"
+                        >
+                          {t('law.mic_note')}
+                          <div className="absolute top-full left-4 border-8 border-transparent border-t-red-500" />
+                        </motion.div>
+                      )}
+                    </div>
                     <input 
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
@@ -261,7 +425,11 @@ export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ la
                   </div>
                 </div>
 
-                <div className={`card p-10 text-white space-y-6 relative overflow-hidden shadow-2xl ${theme === 'dark' ? 'bg-silver-glowing text-charcoal-deep glow-silver' : 'bg-gold-brushed text-white glow-gold'}`}>
+                <div className={`card p-10 space-y-6 relative overflow-hidden shadow-2xl ${
+                  theme === 'dark' 
+                    ? 'bg-silver-glowing text-charcoal-deep glow-silver' 
+                    : 'bg-gold-brushed text-cocoa-deep glow-gold'
+                }`}>
                   <div className="absolute top-0 right-0 p-12 opacity-10">
                     <Scale size={160} />
                   </div>
@@ -272,7 +440,7 @@ export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ la
                         <Share2 size={24} />
                       </button>
                     </div>
-                    <div className={`prose prose-lg max-w-none ${theme === 'dark' ? 'prose-invert text-charcoal-deep' : 'prose-invert'}`}>
+                    <div className={`prose prose-lg max-w-none ${theme === 'dark' ? 'text-charcoal-deep' : 'text-cocoa-deep'}`}>
                       <Markdown>{contractResult.rightsSummary}</Markdown>
                     </div>
                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t('law.source')}</p>
@@ -291,6 +459,7 @@ export const LawExplainer: React.FC<{ language: string, theme: string }> = ({ la
         </div>
       </div>
     </div>
+    </>
   );
 };
 
