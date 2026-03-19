@@ -6,6 +6,10 @@ import { askLaw, analyzeContract } from '../services/gemini';
 import { auth, db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useLocalization } from '../services/localization';
+import { startSpeechRecognition as startSpeechRec } from '../services/speechService';
+import { speak, stopSpeaking } from '../services/ttsService';
+import { capturePhoto } from '../services/cameraService';
+import { Capacitor } from '@capacitor/core';
 
 export const LawExplainer: React.FC<{ 
   language: string, 
@@ -35,8 +39,6 @@ export const LawExplainer: React.FC<{
   const [readingText, setReadingText] = useState('');
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   React.useEffect(() => {
     if (initialHistory) {
@@ -52,59 +54,27 @@ export const LawExplainer: React.FC<{
     setReadingText(text);
     setIsNarrating(true);
     setHighlightIndex(-1);
-    
-    // Stop any current speech
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = language === 'en' ? 'en-US' : (language === 'ms' ? 'ms-MY' : 'id-ID');
-    utterance.rate = 0.9; // Slightly slower for clarity
-    
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        // Find the word index
-        const textBefore = text.substring(0, event.charIndex);
-        const wordsBefore = textBefore.trim().split(/\s+/);
-        setHighlightIndex(textBefore.trim() === '' ? 0 : wordsBefore.length);
-      }
-    };
-    
-    utterance.onend = () => {
-      setHighlightIndex(-1);
-    };
-    
-    speechRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
+
+    speak(text, language, {
+      onBoundary: (wordIndex) => setHighlightIndex(wordIndex),
+      onEnd: () => setHighlightIndex(-1),
+    });
   };
 
-  const stopReadingMode = () => {
-    window.speechSynthesis.cancel();
+  const stopReadingMode = async () => {
+    await stopSpeaking();
     setIsNarrating(false);
     setReadingText('');
     setHighlightIndex(-1);
   };
 
-  const startSpeechRecognition = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Speech recognition is not supported in your browser.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = language === 'en' ? 'en-US' : (language === 'ms' ? 'ms-MY' : 'id-ID');
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => setIsRecording(true);
-    recognition.onend = () => setIsRecording(false);
-    recognition.onerror = () => setIsRecording(false);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setQuery(transcript);
-    };
-
-    recognition.start();
+  const handleStartSpeechRecognition = () => {
+    startSpeechRec(language, {
+      onStart: () => setIsRecording(true),
+      onEnd: () => setIsRecording(false),
+      onError: () => setIsRecording(false),
+      onResult: (transcript) => setQuery(transcript),
+    });
   };
 
   const handleChat = async (e?: React.FormEvent, customQuery?: string) => {
@@ -152,6 +122,28 @@ export const LawExplainer: React.FC<{
     setChatHistory([]);
     setActiveCategory(null);
     setMode('chat');
+  };
+
+  const handleContractCapture = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await capturePhoto();
+        if (result) {
+          setLoading(true);
+          try {
+            const data = await analyzeContract(result.base64, result.mimeType, language);
+            setContractResult(data);
+            setMode('contract');
+          } finally {
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    } else {
+      fileInputRef.current?.click();
+    }
   };
 
   const handleContractUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,11 +255,11 @@ export const LawExplainer: React.FC<{
           <div className="space-y-2">
             <h3 className={`text-[10px] font-bold uppercase tracking-widest px-2 ${theme === 'dark' ? 'text-off-white/40' : 'text-cocoa-deep/40'}`}>{t('law.tools')}</h3>
             <div className="grid grid-cols-1 gap-2">
-              <button 
-                onClick={() => fileInputRef.current?.click()}
+              <button
+                onClick={handleContractCapture}
                 className={`flex items-center gap-2 p-3 rounded-xl border transition-all text-left group ${
-                  mode === 'contract' 
-                    ? (theme === 'dark' ? 'bg-silver-glowing text-charcoal-deep border-silver-glowing' : 'bg-gold-brushed text-white border-gold-brushed') 
+                  mode === 'contract'
+                    ? (theme === 'dark' ? 'bg-silver-glowing text-charcoal-deep border-silver-glowing' : 'bg-gold-brushed text-white border-gold-brushed')
                     : (theme === 'dark' ? 'bg-white/5 border-white/10 text-off-white hover:bg-white/10' : 'bg-gold-brushed/5 border-gold-brushed/10 text-gold-brushed hover:bg-gold-brushed/10')
                 }`}
               >
@@ -324,7 +316,7 @@ export const LawExplainer: React.FC<{
                             <Markdown>{msg.text}</Markdown>
                           </div>
                           {msg.role === 'ai' && (
-                            <div className="absolute -right-12 top-0 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute -right-12 top-0 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               <button 
                                 onClick={() => startReadingMode(msg.text)}
                                 className={`p-2 rounded-full transition-all ${
@@ -352,7 +344,7 @@ export const LawExplainer: React.FC<{
                     <div className="relative">
                       <button 
                         type="button" 
-                        onClick={startSpeechRecognition}
+                        onClick={handleStartSpeechRecognition}
                         className={`p-3 transition-all rounded-full ${
                           isRecording 
                             ? 'bg-red-500 text-white animate-pulse' 

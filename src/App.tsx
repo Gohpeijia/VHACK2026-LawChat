@@ -5,9 +5,12 @@ import { DocumentExplainer } from './components/DocumentExplainer';
 import { LawExplainer } from './components/LawExplainer';
 import { History } from './components/History';
 import { Auth } from './components/Auth';
-import { auth } from './firebase';
-import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
+import { auth, db } from './firebase';
+import { onAuthStateChanged, signOut, getRedirectResult, User as FirebaseUser } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { LocalizationProvider, useLocalization, LanguageCode } from './services/localization';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 // Error Boundary Component
 interface ErrorBoundaryProps {
@@ -77,6 +80,20 @@ function App() {
       setIsAuthReady(true);
       if (currentUser) setShowAuth(false);
     });
+
+    // Handle Google sign-in redirect result (mobile WebView)
+    getRedirectResult(auth).then((result) => {
+      if (result?.user) {
+        setDoc(doc(db, 'users', result.user.uid), {
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName,
+          role: 'user',
+          createdAt: serverTimestamp()
+        }, { merge: true });
+      }
+    }).catch(console.error);
+
     return () => unsubscribe();
   }, []);
 
@@ -85,6 +102,12 @@ function App() {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+    }
+
+    // Update native status bar to match theme
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setStyle({ style: theme === 'dark' ? Style.Dark : Style.Light }).catch(() => {});
+      StatusBar.setBackgroundColor({ color: theme === 'dark' ? '#0A0A0A' : '#F7F3E9' }).catch(() => {});
     }
   }, [theme]);
 
@@ -316,7 +339,7 @@ function AppContent({
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col">
           {/* Mobile Header */}
-          <header className={`md:hidden sticky top-0 z-50 transition-all duration-500 ${theme === 'dark' ? 'bg-charcoal-deep/80 border-white/5' : 'bg-beige-pale/80 border-cocoa-deep/5'} backdrop-blur-md border-b px-6 py-4 flex items-center justify-between`}>
+          <header className={`md:hidden sticky top-0 z-50 transition-all duration-500 ${theme === 'dark' ? 'bg-charcoal-deep/80 border-white/5' : 'bg-beige-pale/80 border-cocoa-deep/5'} backdrop-blur-md border-b px-6 py-4 flex items-center justify-between`} style={{ paddingTop: `calc(0.75rem + var(--safe-area-top))` }}>
             <div className="flex items-center gap-2">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${theme === 'dark' ? 'bg-silver-glowing glow-silver' : 'bg-gold-brushed glow-gold'}`}>
                 <Scale size={18} />
@@ -390,7 +413,7 @@ function AppContent({
             )}
           </main>
 
-          <footer className={`px-6 py-4 text-center opacity-40 ${theme === 'dark' ? 'text-off-white' : 'text-cocoa-deep'}`}>
+          <footer className={`px-6 py-4 text-center opacity-40 ${theme === 'dark' ? 'text-off-white' : 'text-cocoa-deep'}`} style={{ paddingBottom: `calc(1rem + var(--safe-area-bottom))` }}>
             <p className="text-[10px] font-medium">
               {t('footer.disclaimer')}
             </p>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LawChat</string>
+    <string name="title_activity_main">LawChat</string>
+    <string name="package_name">com.lawchat.app</string>
+    <string name="custom_url_scheme">com.lawchat.app</string>
+</resources>
