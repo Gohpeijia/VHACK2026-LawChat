@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogIn, UserPlus, Mail, Lock, User, ArrowRight, Scale, AlertCircle } from 'lucide-react';
 import { auth, db } from '../firebase';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   updateProfile,
   signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useLocalization } from '../services/localization';
+import { Capacitor } from '@capacitor/core';
 
 interface AuthProps {
   onSuccess: () => void;
@@ -80,20 +82,24 @@ export function Auth({ onSuccess, theme }: AuthProps) {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      // Check if user document exists, if not create it
-      // We use setDoc with merge: true to be safe
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        role: 'user',
-        createdAt: serverTimestamp()
-      }, { merge: true });
-      
-      onSuccess();
+      if (Capacitor.isNativePlatform()) {
+        // Use redirect flow on native — popups are blocked in WebView
+        await signInWithRedirect(auth, provider);
+        // Result is handled by getRedirectResult in App.tsx on mount
+      } else {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        await setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          role: 'user',
+          createdAt: serverTimestamp()
+        }, { merge: true });
+
+        onSuccess();
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
