@@ -13,7 +13,7 @@
 | **Track** | Natural Language Processing (NLP) |
 | **SDG** | SDG 10: Reduced Inequalities (Target 10.2) |
 | **Team** | VHACK2026-LawChat |
-| **University** | Sunway Univerity |
+| **University** | Sunway University|
 | **Deadline** | 19 March 2026 |
 
 ---
