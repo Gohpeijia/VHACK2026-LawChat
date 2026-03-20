@@ -20,6 +20,13 @@
 }
 
 @layer base {
+  :root {
+    --safe-area-top: env(safe-area-inset-top);
+    --safe-area-bottom: env(safe-area-inset-bottom);
+    --safe-area-left: env(safe-area-inset-left);
+    --safe-area-right: env(safe-area-inset-right);
+  }
+
   body {
     @apply bg-beige-pale text-cocoa-deep transition-colors duration-500 antialiased;
     font-family: var(--font-sans);

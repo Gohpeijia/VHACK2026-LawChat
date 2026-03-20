@@ -6,6 +6,10 @@ import { explainDocument, chatWithDocument } from '../services/gemini';
 import { auth, db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useLocalization } from '../services/localization';
+import { startSpeechRecognition as startSpeechRec } from '../services/speechService';
+import { speak, stopSpeaking } from '../services/ttsService';
+import { capturePhoto } from '../services/cameraService';
+import { Capacitor } from '@capacitor/core';
 
 export const DocumentExplainer: React.FC<{ 
   language: string, 
@@ -30,8 +34,6 @@ export const DocumentExplainer: React.FC<{
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     if (initialHistory) {
@@ -44,57 +46,27 @@ export const DocumentExplainer: React.FC<{
     setReadingText(text);
     setIsNarrating(true);
     setHighlightIndex(-1);
-    
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = language === 'en' ? 'en-US' : (language === 'ms' ? 'ms-MY' : 'id-ID');
-    utterance.rate = 0.9;
-    
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        const textBefore = text.substring(0, event.charIndex);
-        const wordsBefore = textBefore.trim().split(/\s+/);
-        setHighlightIndex(textBefore.trim() === '' ? 0 : wordsBefore.length);
-      }
-    };
-    
-    utterance.onend = () => {
-      setHighlightIndex(-1);
-    };
-    
-    speechRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
+
+    speak(text, language, {
+      onBoundary: (wordIndex) => setHighlightIndex(wordIndex),
+      onEnd: () => setHighlightIndex(-1),
+    });
   };
 
-  const stopReadingMode = () => {
-    window.speechSynthesis.cancel();
+  const stopReadingMode = async () => {
+    await stopSpeaking();
     setIsNarrating(false);
     setReadingText('');
     setHighlightIndex(-1);
   };
 
-  const startSpeechRecognition = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Speech recognition is not supported in your browser.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = language === 'en' ? 'en-US' : (language === 'ms' ? 'ms-MY' : 'id-ID');
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => setIsRecording(true);
-    recognition.onend = () => setIsRecording(false);
-    recognition.onerror = () => setIsRecording(false);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setChatInput(transcript);
-    };
-
-    recognition.start();
+  const handleStartSpeechRecognition = () => {
+    startSpeechRec(language, {
+      onStart: () => setIsRecording(true),
+      onEnd: () => setIsRecording(false),
+      onError: () => setIsRecording(false),
+      onResult: (transcript) => setChatInput(transcript),
+    });
   };
 
   const loadingMessages = React.useMemo(() => [
@@ -254,11 +226,24 @@ export const DocumentExplainer: React.FC<{
 
       {!showAnalysis && !loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <button 
-            onClick={() => fileInputRef.current?.click()}
+          <button
+            onClick={async () => {
+              if (Capacitor.isNativePlatform()) {
+                try {
+                  const result = await capturePhoto();
+                  if (result) {
+                    setFile(result.dataUrl);
+                    setMimeType(result.mimeType);
+                    processDocument(result.dataUrl, result.mimeType);
+                  }
+                } catch (err) { console.error(err); }
+              } else {
+                fileInputRef.current?.click();
+              }
+            }}
             className={`card p-8 md:p-12 flex flex-col items-center justify-center gap-4 transition-all group border-2 ${
-              theme === 'dark' 
-                ? 'bg-charcoal-deep border-white/5 hover:border-silver-glowing/30 hover:bg-white/5' 
+              theme === 'dark'
+                ? 'bg-charcoal-deep border-white/5 hover:border-silver-glowing/30 hover:bg-white/5'
                 : 'bg-cream-soft border-gold-brushed/10 hover:border-gold-brushed/30 hover:bg-beige-pale'
             }`}
           >
@@ -273,7 +258,7 @@ export const DocumentExplainer: React.FC<{
             </div>
           </button>
 
-          <button 
+          <button
             onClick={() => fileInputRef.current?.click()}
             className={`card p-8 md:p-12 flex flex-col items-center justify-center gap-4 transition-all group border-2 ${
               theme === 'dark' 
@@ -427,7 +412,7 @@ export const DocumentExplainer: React.FC<{
                             <Markdown>{msg.parts[0].text}</Markdown>
                           </div>
                           {msg.role === 'model' && (
-                            <div className="absolute -right-12 top-0 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute -right-12 top-0 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               <button 
                                 onClick={() => startReadingMode(msg.parts[0].text)}
                                 className={`p-2 rounded-full transition-all ${
@@ -457,7 +442,7 @@ export const DocumentExplainer: React.FC<{
                     <div className="relative">
                       <button 
                         type="button" 
-                        onClick={startSpeechRecognition}
+                        onClick={handleStartSpeechRecognition}
                         className={`p-3 transition-all rounded-full ${
                           isRecording 
                             ? 'bg-red-500 text-white animate-pulse' 
