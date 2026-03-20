@@ -80,15 +80,13 @@ ASEAN is a mosaic of thousands of languages and dialects. However, digital gover
 - 🏘️ **Rural B40 communities** excluded from welfare and legal services
 - 📋 **SMEs and freelancers** confused by LHDN and JKM letters
 
-> *"In Malaysia, 1,001 undang-undang exist. Most rakyat don't know a single one."*
-
 ---
 
 ## 💡 Solution
 
 **LawChat** is powered by the **Gemini API** that:
 
-1. 📷 **Snaps government document**: LHDN notice, JKM letter, hospital bill, welfare form
+1. 📷 **Snaps government document**: Such as LHDN notice, JKM letter, hospital bill, welfare form and more.
 2. 🧠 **Gemini AI Powered:** Integrates Google's state-of-the-art Gemini API for accurate, context-aware legal simplifications.
 3. ✅ **Givee clear action steps**: The step will labeled at the aend of the chat for user to notice it.
 4. ⚖️ **Answers legal questions** about tenancy, employment, consumer, family, road, and welfare rights
@@ -176,7 +174,7 @@ ASEAN is a mosaic of thousands of languages and dialects. However, digital gover
 | ✅ Text Simplification | Gemini converts legal jargon to plain everyday language (5th-grade level) |
 | ✅ Recursive Summarisation | Long policy documents condensed into 3–5 actionable bullet points |
 | ✅ Cross-Lingual Retrieval | Ask in any dialect → Gemini retrieves from national-language statute |
-| ✅ Hallucination Control | RAG via System Instructions grounds all answers in official Malaysian acts |
+| ✅ Hallucination Control | RAG via System Instructions grounds all answers |
 | ✅ Hardware Interaction | Implemented hardware-level feature access (Microphone) with proper Android permission handling (RECORD_AUDIO) |
 | ✅ Low-Resource Languages | Covers local dialects not supported by standard translation tools |
 | ✅ Inclusivity UI | Guest mode, voice input, simple layout designed for low digital literacy |
