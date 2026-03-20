@@ -1,7 +1,7 @@
-# ⚖️ LawChat — Malaysian Rights Explainer
+# ⚖️ LawChat 
 
 > **Snap a letter. Ask a law. Know your rights.**
-> An AI-powered multilingual civic assistant that helps every Malaysian understand government documents and their legal rights — in multiple languages.
+> An multilingual civic assistant that helps every people understand government documents and their legal rights — in multiple languages.
 
 ---
 
