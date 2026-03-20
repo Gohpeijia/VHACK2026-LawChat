@@ -151,13 +151,21 @@ ASEAN is a mosaic of thousands of languages and dialects. However, digital gover
 | **Frontend** | React 18 + TypeScript | Responsive Single Page Application (SPA) styled with Tailwind CSS |
 | **Backend** | Google Firebase (Serverless) | Firebase Auth for user identity and Cloud Firestore for real-time data storage |
 | **AI Engine** | Gemini 2.5 Flash | Core "brain" for legal reasoning, document parsing, and multi-dialect translation |
-| **Environment** | Cloud Run | Hosted on Google Cloud via the AI Studio Build environment |
 | **NLP** | Natural Language Processing | Gemini handles semantic analysis to turn complex legal jargon into plain language |
 | **RAG** | Grounded Context | Uses System Instructions to ground the AI in national statutes and legal frameworks |
 | **Storage** | Firestore | Stores chat history, analysed documents, and user preferences |
 | **Sharing** | HTTPS Preview | Shared via a secure URL that allows others to interact with your specific build |
 | **Voice** | Web Speech API | Text-to-speech accessibility for elderly and low-literacy users |
- 
+
+### Environment
+
+| Environment | What it is | Role |
+| :--- | :--- | :--- |
+| **Mobile Environment** | Android OS | Runs the app natively via Capacitor, granting hardware access (e.g., microphone) for voice input. |
+| **Web Environment** | Client Browser | Provides the frontend interface for web users and local development (`npm run dev`). |
+| **Cloud Backend** | Google Firebase (Firestore & Auth) | Manages user authentication and securely stores real-time app data like chat histories. |
+| **AI Cognitive** | Google Gemini API | Acts as the AI brain to process complex legal queries and generate simplified explanations. |
+
 ---
  
 ## 📋 CS4 Technical Requirements — Coverage
